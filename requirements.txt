@@ -1,0 +1,4 @@
+pyTelegramBotAPI==4.14.0
+Django==4.2
+environs==9.5.0
+validate-email-address==1
