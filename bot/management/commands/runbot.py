@@ -1,10 +1,11 @@
 from django.core.management.base import BaseCommand
-from telebot import TeleBot, apihelper
+from telebot import TeleBot, apihelper, types
 from validate_email_address import validate_email
 
 from SecretSanta.settings import TELEGRAM_BOT_TOKEN
 
 bot = TeleBot(TELEGRAM_BOT_TOKEN)
+game = {}
 user_states = {}
 
 
