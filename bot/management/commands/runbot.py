@@ -1,20 +1,30 @@
+from datetime import datetime
+
 from django.core.management.base import BaseCommand
 from telebot import TeleBot, apihelper, types
+from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
 from validate_email_address import validate_email
 
 from SecretSanta.settings import TELEGRAM_BOT_TOKEN
 
 bot = TeleBot(TELEGRAM_BOT_TOKEN)
-game = {}
+game_states = {}
 user_states = {}
 
 
+@bot.message_handler(commands=['organize'])
+def handler_organize(message):
+    markup = types.InlineKeyboardMarkup()
+    create_game_button = types.InlineKeyboardButton('Создать игру', callback_data='create_game')
+    markup.add(create_game_button)
+    bot.send_message(message.chat.id, 'Организуй тайный обмен подарками, запусти праздничное настроение!', reply_markup=markup)
+    user_states[message.from_user.id] = 'get_room_name'
+
 @bot.message_handler(commands=['start'])
-def send_link(message):
+def handler_start(message):
     bot.send_message(message.chat.id, 'Замечательно, ты собираешься участвовать в игре: название c бюджетом и датой проведения')
     bot.send_message(message.chat.id, 'Введите имя')
     user_states[message.from_user.id] = 'get_name'
-
 
 @bot.message_handler(func=lambda message: True)
 def discuss_with_bot(message):
@@ -40,65 +50,62 @@ def discuss_with_bot(message):
         
         elif current_state == 'start_game':
             del user_states[user_id]
+
+        elif current_state == 'get_room_name':
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton('Да', callback_data='with_present'))
+            markup.add(types.InlineKeyboardButton('Нет', callback_data='set_registration'))
+            bot.send_message(message.chat.id, 'Будем вводить ограничение стоимости подарка?', reply_markup=markup)
+            del user_states[user_id]
             
     else:
         bot.send_message(message.chat.id, 'Что-то пошло не так попробуйте еще раз')
         bot.send_message(message.chat.id, '/start')
 
 
-@bot.message_handler(commands=['organize'])
-def hello_organize(message):
-    bot.send_message(message.chat.id, 'Сервис для обмена новогодними подарками')
-    user_states[message.from_user.id] = 'start_game'
+
+@bot.callback_query_handler(func=lambda call: call.data == 'create_game')
+def create_game(call):
+    bot.send_message(call.message.chat.id, 'Придумай название для комнаты:')
 
 
-@bot.message_handler(func=lambda message: True)
-def create_game(message):
-    user_id = message.from_user.id
-    if user_id in user_states:
-        current_state = user_states[user_id]
-        if current_state == 'start_game':
-            bot.send_message(message.chat.id, f'Организуй тайный обмен подарками, запусти праздничное настроение!')
-            user_states[user_id] = 'create_game'
+@bot.callback_query_handler(func=lambda call: call.data == 'with_present')
+def set_budget(call):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('До 500 рублей', callback_data='set_registration'))
+    markup.add(types.InlineKeyboardButton('От 500 до 1000 рублей', callback_data='set_registration'))
+    markup.add(types.InlineKeyboardButton('Больше 1000 рублей', callback_data='set_registration'))
+    bot.send_message(call.message.chat.id, 'Выберите бюджет:', reply_markup=markup)
 
-        elif current_state == 'create_game':
-            bot.send_message(message.chat.id, f'Придумай название для комнаты:')
-            user_states[user_id] = 'get_room_name'
 
-        elif current_state == 'get_room_name':
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            markup.add(types.KeyboardButton('Да'))
-            markup.add(types.KeyboardButton('Нет'))
-            bot.send_message(message.chat.id, 'Будем вводить ограничение стоимости подарка?', reply_markup=markup)
-            user_states[user_id] = 'set_budget'
+@bot.callback_query_handler(func=lambda call: call.data == 'set_registration')
+def set_registration(call):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('До 25.12.2023', callback_data='set_sending_date'))
+    markup.add(types.InlineKeyboardButton('До 31.12.2023', callback_data='set_sending_date'))
+    bot.send_message(call.message.chat.id, 'Выбери период регистрации участников:(до 12.00 МСК)', reply_markup=markup)
 
-        elif current_state == 'set_budget':
-            if message.text == "Да":
-                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-                markup.add(types.KeyboardButton('До 500 рублей'))
-                markup.add(types.KeyboardButton('От 500 до 1000 рублей'))
-                markup.add(types.KeyboardButton('Больше 1000 рублей'))
-                bot.send_message(message.chat.id, 'Выберите бюджет:', reply_markup=markup)
-                user_states[user_id] = 'set_registration'
-            else:
-                user_states[user_id] = 'set_registration'
-        
-        elif current_state == 'set_registration':
-            bot.send_message(message.chat.id, 'Выбери период регистрации участников:(до 12.00 МСК)')
-            user_states[user_id] = 'set_sending_date'
-            
-        elif current_state == 'set_sending_date':
-            #проверить дату
-            bot.send_message(message.chat.id, 'Напиши дату вручения подарков:')
-            user_states[user_id] = 'finish'
 
-        elif current_state == 'finish':
-            #проверить дату
-            bot.send_message(message.chat.id, 'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната НАЗВАНИЕ с БЮДЖЕТ и ПЕРИОД РЕГИСТРАЦИИ создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
-   
-    else:
-        bot.send_message(message.chat.id, 'Что-то пошло не так попробуйте еще раз')
-        bot.send_message(message.chat.id, '/organize')
+@bot.callback_query_handler(func=lambda call: call.data == 'set_sending_date')
+def handle_calendar(call):
+    calendar, step = DetailedTelegramCalendar(calendar_id=1, locale='ru').build()
+    bot.send_message(call.message.chat.id, f"Выберите {LSTEP[step]}", reply_markup=calendar)
+
+
+@bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
+def cal(call):
+    result, key, step = DetailedTelegramCalendar(calendar_id=1, locale='ru').process(call.data)
+    if not result and key:
+        bot.edit_message_text(f"Выберите {LSTEP[step]}",
+                              call.message.chat.id,
+                              call.message.message_id,
+                              reply_markup=key)
+    elif result:
+        bot.edit_message_text(f"Ваш выбор {result}",
+                              call.message.chat.id,
+                              call.message.message_id)
+        bot.send_message(call.message.chat.id, 'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната НАЗВАНИЕ с БЮДЖЕТ и ПЕРИОД РЕГИСТРАЦИИ создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
+        bot.send_message(call.message.chat.id, 'https://t.me/dev_flower_shop_bot')
 
 
 class Command(BaseCommand):
