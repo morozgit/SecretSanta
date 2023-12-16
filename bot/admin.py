@@ -1,4 +1,11 @@
+import random
+
 from django.contrib import admin
+from django.http import HttpResponseRedirect
+from django.urls import path, re_path
+from django.utils.safestring import mark_safe
+
+from bot.lottery import lottery
 
 from .models import Event, Participant
 
@@ -19,6 +26,21 @@ class EventAdmin(admin.ModelAdmin):
 @admin.register(Participant)
 class ParticipantAdmin(admin.ModelAdmin):
     list_display = ('name',
-                    'email')
+                    'email',
+                    )
     search_fields = ('name',
                      'email')
+    
+    change_list_template = "admin/model_change_list.html"
+ 
+    def get_urls(self):
+        urls = super(ParticipantAdmin, self).get_urls()
+        custom_urls = [
+            re_path(r'^drawing_of_lots/$', self.drawing_of_lots, name='drawing_of_lots'), ]
+        return custom_urls + urls
+ 
+    def drawing_of_lots(self, request):
+        lottery()
+
+        self.message_user(request, "Жеребьевка проведена успешно!")
+        return HttpResponseRedirect("../")

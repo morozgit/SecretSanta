@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 
 
 class Event(models.Model):
@@ -25,6 +25,9 @@ class Participant(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     giver = models.ForeignKey(User, related_name='giver', on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.name}'
 
     class Meta:
         verbose_name = "Участник"

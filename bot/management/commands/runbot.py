@@ -5,6 +5,8 @@ from telebot import TeleBot, apihelper, types
 from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
 from validate_email_address import validate_email
 
+from bot.tasks import lottery
+from SecretSanta.celery import app as celery_app
 from SecretSanta.settings import TELEGRAM_BOT_TOKEN
 
 bot = TeleBot(TELEGRAM_BOT_TOKEN)
@@ -46,8 +48,22 @@ def discuss_with_bot(message):
 
         elif current_state == 'get_wish':
             bot.send_message(message.chat.id, 'Превосходно, ты в игре! 31.12.2023 мы проведем жеребьевку и ты узнаешь имя и контакты своего тайного друга. Ему и нужно будет подарить подарок!')
-            user_states[user_id] = 'start_game'
-        
+            # TODO заменит дату на дату из бд, которую выбрал user
+            lottery_end = lottery.apply_async(eta=datetime(2023, 12, 31, 23, 59, 59), app=celery_app)
+            user_states[user_id] = 'wait_lottery'
+
+        elif current_state == 'wait_lottery':
+            print(user_states, current_state)
+            result = lottery.AsyncResult(lottery_end.id)
+            print('result', result)
+            if result.ready():
+                print('Результат:', result.result)
+                bot.send_message(message.chat.id, 'Жеребьевка проведена! Твой тайный друг - {}.'.format(result.get()))
+                user_states[user_id] = 'start_game'
+            else:
+                print('Состояние:', result.state)
+                bot.send_message(message.chat.id, 'Жеребьевка еще не проведена. Подожди немного.')
+
         elif current_state == 'start_game':
             del user_states[user_id]
 
