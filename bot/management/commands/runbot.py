@@ -102,7 +102,7 @@ def discuss_with_bot(message):
             game['name'] = message.text
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Да', callback_data='with_present'))
-            markup.add(types.InlineKeyboardButton('Нет', callback_data=f'set_registration:{None}'))
+            markup.add(types.InlineKeyboardButton('Нет', callback_data=f'set_registration:0'))
             bot.send_message(message.chat.id, 'Будем вводить ограничение стоимости подарка?', reply_markup=markup)
             del user_states[user_id]
             
@@ -152,10 +152,15 @@ def cal(call):
         
     elif result:
         game['sending_date'] = result
-        bot.edit_message_text(f"Ваш выбор {result}",
+
+        bot.edit_message_text(f"Дата отправки подарка {result}",
                               call.message.chat.id,
                               call.message.message_id)
-        bot.send_message(call.message.chat.id, 'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната НАЗВАНИЕ с БЮДЖЕТ и ПЕРИОД РЕГИСТРАЦИИ создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
+        if game['price'] != '0':
+            bot.send_message(call.message.chat.id, f'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната {game["name"]} с {game["price"]} и {game["registration_date"]} создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
+        else:
+            bot.send_message(call.message.chat.id, f'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната {game["name"]} без ограничения бюджета и {game["registration_date"]} создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
+
         bot.send_message(call.message.chat.id, 'https://t.me/SecretSanta_dev_bot')
 
         Event.objects.create(name=game['name'],
