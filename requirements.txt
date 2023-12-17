@@ -3,3 +3,4 @@ Django==4.2
 environs==9.5.0
 validate-email-address==1
 python-telegram-bot-calendar==1.0.5
+celery==5.3.6
