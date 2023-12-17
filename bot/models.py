@@ -11,7 +11,7 @@ class Event(models.Model):
     admin = models.ForeignKey(User, related_name='admin', on_delete=models.CASCADE)
 
     def __str__(self):
-        return f'Игра {self.name} с бюджетом в {self.price} будет ждать регистрации игроков до {self.registration_date}! Не забудь отправить подарок своему подопечному {self.sending_date}!\nСсылка на комнату:{self.tglink}'
+        return f'Игра {self.name}'
 
     class Meta:
         verbose_name = "Игра"
@@ -22,9 +22,9 @@ class Participant(models.Model):
     name = models.CharField(max_length=100, verbose_name="Имя участника")
     email = models.EmailField( verbose_name="Почта участника")
     wishlist = models.TextField(max_length=300, verbose_name="Пожелания участника")
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    giver = models.ForeignKey(User, related_name='giver', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
+    # event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    # giver = models.ForeignKey(User, related_name='giver', on_delete=models.CASCADE)
+    # receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.name}'
