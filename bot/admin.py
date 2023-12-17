@@ -6,6 +6,8 @@ from django.urls import path, re_path
 from django.utils.safestring import mark_safe
 
 from bot.lottery import lottery
+from bot.management.commands.runbot import bot
+from bot.management.commands.signals import drawing_of_lots_signal
 
 from .models import Event, Participant, ResultLottery
 
@@ -21,6 +23,8 @@ class EventAdmin(admin.ModelAdmin):
     search_fields = ('name',
                      'price',
                      'registration_date',)
+
+
 
 
 @admin.register(Participant)
@@ -41,7 +45,7 @@ class ParticipantAdmin(admin.ModelAdmin):
  
     def drawing_of_lots(self, request):
         lottery()
-        
+        drawing_of_lots_signal.send(sender=self.__class__, request=request)
         self.message_user(request, "Жеребьевка проведена успешно!")
         return HttpResponseRedirect("../")
     

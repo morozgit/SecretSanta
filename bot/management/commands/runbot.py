@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
+from django.dispatch import receiver
 from telebot import TeleBot, apihelper, types
 from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
 from validate_email_address import validate_email
@@ -9,8 +10,11 @@ from validate_email_address import validate_email
 from bot.models import Event, Participant, ResultLottery
 from bot.tasks import lottery
 from SecretSanta.celery import app as celery_app
-from SecretSanta.settings import TELEGRAM_BOT_TOKEN
+from SecretSanta.settings import TELEGRAM_BOT_TOKEN, TG_CHAT_ID
 
+from .signals import drawing_of_lots_signal
+
+tg_chat_id = TG_CHAT_ID
 bot = TeleBot(TELEGRAM_BOT_TOKEN)
 game = {}
 user_data = {}
@@ -150,14 +154,22 @@ def cal(call):
                               call.message.chat.id,
                               call.message.message_id)
         bot.send_message(call.message.chat.id, 'Отлично, Тайный Санта уже готовится к раздаче подарков! Комната НАЗВАНИЕ с БЮДЖЕТ и ПЕРИОД РЕГИСТРАЦИИ создана! Вот ссылка для участников игры, по которой они смогут зарегистрироваться.')
-        bot.send_message(call.message.chat.id, 'https://t.me/dev_flower_shop_bot')
+        bot.send_message(call.message.chat.id, 'https://t.me/SecretSanta_dev_bot')
 
         Event.objects.create(name=game['name'],
                             price=game['price'],
                             registration_date=game['registration_date'],
                             sending_date=game['sending_date'],
-                            tglink='https://t.me/dev_flower_shop_bot',
+                            tglink='https://t.me/SecretSanta_dev_bot',
                             admin=game['game_admin'])
+
+@receiver(drawing_of_lots_signal)
+def handle_drawing_of_lots_signal(sender, **kwargs):
+    lottery_results = ResultLottery.objects.all()
+    bot.send_message(chat_id=tg_chat_id, text='Пары участников')
+    for lottery_result in lottery_results:
+        bot.send_message(chat_id=tg_chat_id, text=f'{lottery_result.giver_name}, {lottery_result.receiver_name}')
+
 
 class Command(BaseCommand):
     help = 'телеграм бот'

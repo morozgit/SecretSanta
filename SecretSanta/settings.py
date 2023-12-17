@@ -34,6 +34,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
+TG_CHAT_ID = env('TG_CHAT_ID')
 
 # Application definition
 
