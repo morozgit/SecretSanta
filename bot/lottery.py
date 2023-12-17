@@ -1,12 +1,13 @@
 import random
 
-from .models import Participant
+from .models import Participant, ResultLottery
 
 
 def lottery():
     participants = Participant.objects.all()
     shuffled_participants = list(participants)
     random.shuffle(shuffled_participants)
-    user_pairs = list(zip(shuffled_participants, shuffled_participants[1:] + [shuffled_participants[0]]))
-    for user_pair in user_pairs:
-        print(*user_pair)
+    user_names = [participant.name for participant in shuffled_participants]
+    user_pairs = list(zip(user_names, user_names[1:] + [user_names[0]]))
+    ResultLottery.objects.get_or_create(giver_name=user_pairs[0][1],
+                                        receiver_name=user_pairs[1][1])

@@ -6,7 +6,7 @@ from telebot import TeleBot, apihelper, types
 from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
 from validate_email_address import validate_email
 
-from bot.models import Event, Participant
+from bot.models import Event, Participant, ResultLottery
 from bot.tasks import lottery
 from SecretSanta.celery import app as celery_app
 from SecretSanta.settings import TELEGRAM_BOT_TOKEN
@@ -82,8 +82,8 @@ def discuss_with_bot(message):
             result = celery_app.AsyncResult(lottery_end.id)
             print('result', result)
             if result.ready():
-                print('Результат:', result.result)
-                bot.send_message(message.chat.id, 'Жеребьевка проведена! Твой тайный друг - {}.'.format(result.get()))
+                receiver_name = ResultLottery.objects.values_list('receiver_name', flat=True).get(id=1)
+                bot.send_message(message.chat.id, 'Жеребьевка проведена! Твой тайный друг - {receiver_name}.'.format(result.get()))
                 user_states[user_id] = 'start_game'
             else:
                 print('Состояние:', result.state)

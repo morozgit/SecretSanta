@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 
 from bot.lottery import lottery
 
-from .models import Event, Participant
+from .models import Event, Participant, ResultLottery
 
 
 @admin.register(Event)
@@ -41,6 +41,11 @@ class ParticipantAdmin(admin.ModelAdmin):
  
     def drawing_of_lots(self, request):
         lottery()
-
+        
         self.message_user(request, "Жеребьевка проведена успешно!")
         return HttpResponseRedirect("../")
+    
+@admin.register(ResultLottery)
+class ResultLotteryAdmin(admin.ModelAdmin):
+    list_display = ('giver_name', 'receiver_name')
+    search_fields = ('giver_name', 'receiver_name')

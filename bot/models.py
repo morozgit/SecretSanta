@@ -22,9 +22,6 @@ class Participant(models.Model):
     name = models.CharField(max_length=100, verbose_name="Имя участника")
     email = models.EmailField( verbose_name="Почта участника")
     wishlist = models.TextField(max_length=300, verbose_name="Пожелания участника")
-    # event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    # giver = models.ForeignKey(User, related_name='giver', on_delete=models.CASCADE)
-    # receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.name}'
@@ -32,3 +29,15 @@ class Participant(models.Model):
     class Meta:
         verbose_name = "Участник"
         verbose_name_plural = "Участники"
+
+
+class ResultLottery(models.Model):
+    giver_name = models.CharField(max_length=100, verbose_name="Кто дарит")
+    receiver_name = models.CharField(max_length=100, verbose_name="Получатель")
+
+    def __str__(self):
+        return f'{self.giver_name}, {self.receiver_name}'
+
+    class Meta:
+        verbose_name = "Розыгрыш"
+        verbose_name_plural = "Розыгрыши"
