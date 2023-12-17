@@ -43,6 +43,8 @@ def handler_start(message):
         user_states[message.from_user.id] = 'get_name'
     else:
         bot.send_message(message.chat.id, 'Игра еще не создана')
+        bot.send_message(message.chat.id, 'Чтобы создать нажмите')
+        bot.send_message(message.chat.id, '/organize')
     
 
 @bot.callback_query_handler(func=lambda call: call.data.split(':')[0] == 'choice_game')
