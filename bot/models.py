@@ -5,9 +5,10 @@ from django.db import models
 class Event(models.Model):
     name = models.CharField(max_length=200, verbose_name="Название комнаты для игры")
     price = models.CharField(max_length=200, verbose_name="Бюджет подарка")
-    registration_date =  models.DateField(verbose_name="Период регистрации (до 12 по МСК)")
+    registration_date = models.DateField(verbose_name="Период регистрации (до 12 по МСК)")
     sending_date = models.DateField(verbose_name="Дата раздачи подарков (до 12 по МСК)")
     tglink = models.CharField(max_length=200, verbose_name="Тг ссылка на комнату")
+    tg_chat_id = models.CharField(max_length=200, verbose_name="Тг чат id", default='')
     admin = models.ForeignKey(User, related_name='admin', on_delete=models.CASCADE)
 
     def __str__(self):
@@ -20,8 +21,9 @@ class Event(models.Model):
 
 class Participant(models.Model):
     name = models.CharField(max_length=100, verbose_name="Имя участника")
-    email = models.EmailField( verbose_name="Почта участника")
+    email = models.EmailField(verbose_name="Почта участника")
     wishlist = models.TextField(max_length=300, verbose_name="Пожелания участника")
+    game = models.ForeignKey(Event, related_name='participant', on_delete=models.CASCADE)
 
     def __str__(self):
         return f'{self.name}'

@@ -14,7 +14,7 @@ from SecretSanta.settings import TELEGRAM_BOT_TOKEN, TG_CHAT_ID
 
 from .signals import drawing_of_lots_signal
 
-tg_chat_id = TG_CHAT_ID
+# tg_chat_id = TG_CHAT_ID
 bot = TeleBot(TELEGRAM_BOT_TOKEN)
 game = {}
 user_data = {}
@@ -23,7 +23,8 @@ user_states = {}
 
 @bot.message_handler(commands=['organize'])
 def handler_organize(message):
-    game['game_admin'], created = User.objects.get_or_create(username='temchmorozov')
+    game['tg_chat_id'] = message.from_user.id
+    game['game_admin'], created = User.objects.get_or_create(username=message.from_user.username)
     markup = types.InlineKeyboardMarkup()
     create_game_button = types.InlineKeyboardButton('Создать игру', callback_data='create_game')
     markup.add(create_game_button)
@@ -35,10 +36,9 @@ def handler_start(message):
     games = Event.objects.all()
     if games:
         markup = types.InlineKeyboardMarkup()
-        for game_id, game in enumerate(games):
-            choice_game_button = types.InlineKeyboardButton(game.name, callback_data=f'choice_game:{game_id+1}')
+        for game in games:
+            choice_game_button = types.InlineKeyboardButton(game.name, callback_data=f'choice_game:{game.id}')
             markup.add(choice_game_button)
-
         bot.send_message(message.chat.id, 'Выберите игру:', reply_markup=markup)
         user_states[message.from_user.id] = 'get_name'
     else:
@@ -50,6 +50,8 @@ def handler_start(message):
 @bot.callback_query_handler(func=lambda call: call.data.split(':')[0] == 'choice_game')
 def choice_game(call):
     current_game = Event.objects.get(id=call.data.split(':')[1])
+    print(current_game.name)
+    user_data['game_name'] = current_game.name
     bot.send_message(call.message.chat.id, f'Замечательно, ты собираешься участвовать в игре: {current_game.name} c бюджетом {current_game.price} и датой проведения {current_game.registration_date}')
     bot.send_message(call.message.chat.id, 'Введите имя')
 
@@ -75,25 +77,29 @@ def discuss_with_bot(message):
 
         elif current_state == 'get_wish':
             user_data['wishlist'] = message.text
-            registration_date = Event.objects.values_list('registration_date', flat=True).get(id=1)
-            bot.send_message(message.chat.id, f'Превосходно, ты в игре! {registration_date} мы проведем жеребьевку и ты узнаешь имя и контакты своего тайного друга. Ему и нужно будет подарить подарок!')
-            lottery_end = lottery.apply_async(eta=registration_date, app=celery_app)
-            user_states[user_id] = 'wait_lottery'
+            registration_date = Event.objects.values_list('registration_date', flat=True)
+            bot.send_message(message.chat.id, f'Превосходно, ты в игре! {registration_date[0]} мы проведем жеребьевку и ты узнаешь имя и контакты своего тайного друга. Ему и нужно будет подарить подарок!')
+            # lottery_end = lottery.apply_async(eta=registration_date, app=celery_app)
+            # user_states[user_id] = 'wait_lottery'
+
+            print(user_data['game_name'])
+            game_name = Event.objects.get(name=user_data['game_name'])
             Participant.objects.create(name=user_data['name'],
                                        email=user_data['email'],
                                        wishlist=user_data['wishlist'],
-                                       )
+                                       game=game_name)
+            
 
-        elif current_state == 'wait_lottery':
-            result = celery_app.AsyncResult(lottery_end.id)
-            print('result', result)
-            if result.ready():
-                receiver_name = ResultLottery.objects.values_list('receiver_name', flat=True).get(id=1)
-                bot.send_message(message.chat.id, 'Жеребьевка проведена! Твой тайный друг - {receiver_name}.'.format(result.get()))
-                user_states[user_id] = 'start_game'
-            else:
-                print('Состояние:', result.state)
-                bot.send_message(message.chat.id, 'Жеребьевка еще не проведена. Подожди немного.')
+        # elif current_state == 'wait_lottery':
+        #     result = celery_app.AsyncResult(lottery_end.id)
+        #     print('result', result)
+        #     if result.ready():
+        #         receiver_name = ResultLottery.objects.values_list('receiver_name', flat=True).get(id=1)
+        #         bot.send_message(message.chat.id, 'Жеребьевка проведена! Твой тайный друг - {receiver_name}.'.format(result.get()))
+        #         user_states[user_id] = 'start_game'
+        #     else:
+        #         print('Состояние:', result.state)
+        #         bot.send_message(message.chat.id, 'Жеребьевка еще не проведена. Подожди немного.')
 
         elif current_state == 'start_game':
             del user_states[user_id]
@@ -168,14 +174,17 @@ def cal(call):
                             registration_date=game['registration_date'],
                             sending_date=game['sending_date'],
                             tglink='https://t.me/SecretSanta_dev_bot',
-                            admin=game['game_admin'])
+                            admin=game['game_admin'],
+                            tg_chat_id=game['tg_chat_id'])
 
 @receiver(drawing_of_lots_signal)
 def handle_drawing_of_lots_signal(sender, **kwargs):
     lottery_results = ResultLottery.objects.all()
-    bot.send_message(chat_id=tg_chat_id, text='Пары участников')
+    tg_chat_id = Event.objects.values_list('tg_chat_id', flat=True)
+    print(tg_chat_id)
+    bot.send_message(chat_id=tg_chat_id[0], text='Пары участников')
     for lottery_result in lottery_results:
-        bot.send_message(chat_id=tg_chat_id, text=f'{lottery_result.giver_name}, {lottery_result.receiver_name}')
+        bot.send_message(chat_id=tg_chat_id[0], text=f'{lottery_result.giver_name}, {lottery_result.receiver_name}')
 
 
 class Command(BaseCommand):

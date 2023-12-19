@@ -1,9 +1,9 @@
 import random
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from django.urls import path, re_path
-from django.utils.safestring import mark_safe
+from django.urls import path, re_path, reverse
+from django.utils.html import format_html
 
 from bot.lottery import lottery
 from bot.management.commands.runbot import bot
@@ -19,35 +19,47 @@ class EventAdmin(admin.ModelAdmin):
                     'registration_date',
                     'sending_date',
                     'tglink',
-                    'admin')
+                    'admin',
+                    'account_actions')
     search_fields = ('name',
                      'price',
                      'registration_date',)
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            re_path(
+                r'^(?P<account_id>.)$',
+                self.admin_site.admin_view(self.process_deposit),
+                name='account-deposit',
+            ),
+        ]
+        return custom_urls + urls
+    
+    def account_actions(self, obj):
+        return format_html(
+            '<a class="button" href="{}">Жеребьевка</a> ',
+            reverse('admin:account-deposit', args=[obj.pk]),
+        )
+    account_actions.short_description = 'Account Actions'
+    account_actions.allow_tags = True
 
-
+    def process_deposit(self, request, *args, **kwargs):
+        id = kwargs['account_id']
+        print(id)
+        lottery(id)
+        drawing_of_lots_signal.send(sender=self.__class__, request=request)
+        self.message_user(request, "Жеребьевка проведена успешно!")
+        return HttpResponseRedirect("./")
 
 @admin.register(Participant)
 class ParticipantAdmin(admin.ModelAdmin):
     list_display = ('name',
                     'email',
-                    )
+                    'game')
     search_fields = ('name',
-                     'email')
-    
-    change_list_template = "admin/model_change_list.html"
- 
-    def get_urls(self):
-        urls = super(ParticipantAdmin, self).get_urls()
-        custom_urls = [
-            re_path(r'^drawing_of_lots/$', self.drawing_of_lots, name='drawing_of_lots'), ]
-        return custom_urls + urls
- 
-    def drawing_of_lots(self, request):
-        lottery()
-        drawing_of_lots_signal.send(sender=self.__class__, request=request)
-        self.message_user(request, "Жеребьевка проведена успешно!")
-        return HttpResponseRedirect("../")
+                     'email',
+                     'game')
     
 @admin.register(ResultLottery)
 class ResultLotteryAdmin(admin.ModelAdmin):

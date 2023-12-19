@@ -1,10 +1,11 @@
 import random
 
-from .models import Participant, ResultLottery
+from .models import Event, Participant, ResultLottery
 
 
-def lottery():
-    participants = Participant.objects.all()
+def lottery(id):
+    participants = Participant.objects.filter(game_id=id)
+    print(participants)
     shuffled_participants = list(participants)
     random.shuffle(shuffled_participants)
     user_names = [participant.name for participant in shuffled_participants]
