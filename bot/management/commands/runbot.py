@@ -180,11 +180,14 @@ def cal(call):
 @receiver(drawing_of_lots_signal)
 def handle_drawing_of_lots_signal(sender, **kwargs):
     lottery_results = ResultLottery.objects.all()
+    print(lottery_results)
     tg_chat_id = Event.objects.values_list('tg_chat_id', flat=True)
-    print(tg_chat_id)
+    present = Participant.objects.values_list('wishlist', flat=True)
+    
     bot.send_message(chat_id=tg_chat_id[0], text='Пары участников')
     for lottery_result in lottery_results:
-        bot.send_message(chat_id=tg_chat_id[0], text=f'{lottery_result.giver_name}, {lottery_result.receiver_name}')
+        bot.send_message(chat_id=tg_chat_id[0], text=f'{lottery_result.giver_name} дарит {lottery_result.receiver_name} {lottery_result.receiver_present}')
+    Event.objects
 
 
 class Command(BaseCommand):

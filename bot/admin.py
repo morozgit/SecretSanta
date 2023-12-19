@@ -63,5 +63,5 @@ class ParticipantAdmin(admin.ModelAdmin):
     
 @admin.register(ResultLottery)
 class ResultLotteryAdmin(admin.ModelAdmin):
-    list_display = ('giver_name', 'receiver_name')
+    list_display = ('giver_name', 'receiver_name', 'giver_present', 'receiver_present')
     search_fields = ('giver_name', 'receiver_name')

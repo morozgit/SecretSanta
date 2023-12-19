@@ -36,6 +36,8 @@ class Participant(models.Model):
 class ResultLottery(models.Model):
     giver_name = models.CharField(max_length=100, verbose_name="Кто дарит")
     receiver_name = models.CharField(max_length=100, verbose_name="Получатель")
+    giver_present = models.CharField(max_length=100, verbose_name="Подарок Кто дарит")
+    receiver_present = models.CharField(max_length=100, verbose_name="Подарок Получатель")
 
     def __str__(self):
         return f'{self.giver_name}, {self.receiver_name}'
